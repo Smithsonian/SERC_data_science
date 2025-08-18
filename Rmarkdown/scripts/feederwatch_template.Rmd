@@ -1,0 +1,133 @@
+---
+title: "Feederwatch: `r params$state` State Report"
+author: "Jaxine Wolfe"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab
+    highlight: tango
+    code_folding: hide
+params:
+  state: "MD"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+```
+
+```{r}
+state_birds <- data_clean %>% filter(state %in% params$state)
+```
+
+
+This study takes place between `r min(data_clean$date)` and `r max(data_clean$date)`.
+
+## Data Summary
+
+```{r}
+
+bird_smry <- state_birds %>% 
+  group_by(primary_com_name, sci_name) %>% 
+  summarize(Count = sum(how_many)) %>% 
+  arrange(desc(Count)) %>% 
+  rename(`Scientific Name` = sci_name, 
+         `Common Name` = primary_com_name)
+  
+datatable(bird_smry, 
+          options = list(autoWidth = TRUE,
+                         searching = TRUE,
+                         paging = FALSE,
+                         scrollY = 300,
+                         # scrollX = 300,
+                         scrollCollapse = TRUE), 
+          rownames = TRUE)
+
+top10 <- bird_smry$`Common Name`[1:10]
+```
+
+```{r fig.height=8, fig.width=6}
+bird_smry %>% 
+  filter(Count > 10) %>%
+       plot_ly(x = ~Count, y = ~reorder(`Common Name`, Count), type = "bar") %>% 
+       layout(xaxis = list(title = "Number of Individuals"),
+              yaxis = list(title = "Common Name"))
+```
+
+## Data Analysis
+
+Look at observations by species
+
+```{r}
+state_birds %>% 
+  filter(primary_com_name %in% top10) %>% 
+  group_by(primary_com_name, Year, Month) %>% 
+  summarize(how_many = sum(how_many)) %>%
+  mutate(Month = factor(as.character(Month))) %>% 
+  # mutate(norm_count = how_many/sum(how_many)) %>% 
+  ggplot(aes(Month, primary_com_name, fill = how_many)) +
+  geom_tile(color = "white") +
+  coord_equal() +
+  scale_fill_continuous(name = "Bird Count") +
+  ylab("Common Name")
+  # guides(fill=guide_legend(title="Bird Count"))
+```
+
+Observations through time
+
+```{r}
+
+state_birds %>% 
+  arrange(date) %>% 
+  group_by(primary_com_name) %>% 
+  mutate(cumulative_count = cumsum(how_many)) %>% 
+  filter(primary_com_name %in% top10) %>% 
+  ggplot(aes(date, cumulative_count)) +
+  geom_line() +
+  facet_wrap(~primary_com_name) +
+  transition_reveal(date)
+
+```
+
+## Leaflet Mapping
+
+https://r-charts.com/spatial/interactive-maps-leaflet/
+
+```{r}
+
+# birdobs_top10 <- state_birds  %>% 
+#   filter(primary_com_name %in% top10)
+
+# Continuous palette
+# pal <- colorNumeric(palette = "PuOr", domain = birdobs_top10$how_many)
+
+# Discrete palette
+# pal <- colorFactor("Spectral", levels = birdobs_top10$primary_com_name)
+
+
+leaflet(state_birds, width = "100%") %>% 
+        # basemap options
+  addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
+  addTiles(group = "OSM (default)") %>%
+  addCircleMarkers(radius = ~how_many/5, 
+                   group = "Markers",
+                   # color = ~pal(primary_com_name),
+                   label = ~primary_com_name) %>% 
+  # addLegend(position = "bottomright",
+  #           pal = pal, values = ~primary_com_name,
+  #           title = "Legend",
+  #           opacity = 1) %>% 
+    addLayersControl(
+      baseGroups = c("CartoDB", "OSM (default)"),
+                     overlayGroups = c("Markers"),
+                     position = "topright")
+# add a poppup?
+# color by how many?
+
+# https://dds.rodrigozamith.com/cartography-and-journalism/creating-animated-maps-with-r/
+
+```
+
+gganimate leaflet??

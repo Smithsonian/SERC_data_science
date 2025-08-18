@@ -1,0 +1,81 @@
+---
+title: "Palmer Penguin Data Visualization"
+subtitle: "SERC Data Science"
+author: "Jaxine Wolfe"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(palmerpenguins)
+library(DT)
+library(plotly)
+library(gganimate)
+library(gifski)
+
+```
+
+## Tables with DT
+
+```{r}
+smry <- penguins %>% 
+  group_by(species, sex, island) %>% 
+  summarize(across(where(is.numeric), mean, na.rm = TRUE)) %>% 
+  mutate(across(where(is.numeric), round, 5)) %>% 
+  select(-year)
+
+datatable(smry, 
+          caption = "Summary of Numeric Ranges", 
+          options = list(ScrollY = TRUE))
+```
+
+
+## Plotly
+
+```{r}
+
+```
+
+
+## Gganimate
+
+```{r}
+
+animate(penguins %>% drop_na(sex) %>% 
+          ggplot(aes(body_mass_g, flipper_length_mm, col = sex)) +
+          geom_point() +
+          stat_ellipse(level = 0.95) + # confidence interval
+          facet_wrap(~species) +
+          transition_time(year) +
+          labs(title = "Year: {frame_time}"),
+        nframes = 3, fps = 0.5) 
+  
+```
+
+```{r}
+penguins %>% 
+          ggplot(aes(body_mass_g, flipper_length_mm, col = species)) +
+          geom_point(size = 2) +
+          # facet_wrap(~species) +
+           transition_states(species,
+                    transition_length = 2,
+                    state_length = 1) +
+  enter_fade() +
+  exit_shrink()
+          # labs(title = "Year: {frame_time}")
+```
+
+
+```{r}
+penguins %>% 
+  group_by(species, year) %>% 
+  summarize(n = n()) %>% 
+  ggplot(aes(year, n, col = species)) +
+  geom_point() + geom_line() +
+  transition_reveal(year)
+
+```
+
