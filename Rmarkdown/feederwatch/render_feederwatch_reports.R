@@ -23,12 +23,11 @@ data_clean <- data_raw %>%
   separate(subnational1_code, into = c("country", "state"), sep = "-") %>% 
   mutate(date = as.Date(paste(Year, Month, Day, sep = "-"))) %>% 
   filter(valid == 1, category == "species")
-# only keep valid observations from the US id to the species level
 
 all_states <- data_clean %>% group_by(state) %>% summarise(n = sum(how_many)) %>% arrange(desc(n)) %>% pull(state)
 
 ## Generate Reports 
-selected_states <- c("ON") #  "FL", "TX", "CA", "OH"
+selected_states <- c("ON", "FL", "TX") #  "FL", "TX", "CA", "OH"
 
 lapply(selected_states, function(i) {
   rmarkdown::render("Rmarkdown/feederwatch/feederwatch_template.Rmd",

@@ -40,6 +40,7 @@ smry <- penguins %>%
 DT::datatable(smry, 
           caption = "Summary of Continuous Variables", 
           options = list(autoWidth = TRUE,
+                         searching = TRUE,
                          paging = FALSE,
                          info = FALSE,
                          scrollY = 300),
@@ -52,10 +53,11 @@ DT::datatable(smry,
 
 ```{r}
 plot_ly(data = penguins, x = ~bill_length_mm, y = ~bill_depth_mm, 
-        color = ~species, colors = "Set1", alpha = 0.5)
+        color = ~species, colors = "Set1", alpha = 0.5,
+        text = ~paste("Sex: ", sex, '<br>Year:', year))
 
 # add hover text
-# text = ~paste("Sex: ", sex, '<br>Year:', year)
+# 
 ```
 
 ### Barplots
@@ -84,18 +86,17 @@ plot_ly(bill_length_smry, x = ~species, y = ~bill_length_mm, type = "bar", color
              error_y = list(array = ~bill_length_mm_se, color = "black"))
 ```
 
-
 ## Gganimate
 
 ### Data Relationships
 
-Animating the body mass to flipper length relationship across different species of penguin. 
+Animating the body mass to flipper length relationship across different species of penguin.
 
 ```{r}
 penguins %>% 
-          ggplot(aes(body_mass_g, flipper_length_mm, col = species)) +
-          geom_point(size = 2) +
-           transition_states(species,
+  ggplot(aes(body_mass_g, flipper_length_mm, col = species)) +
+  geom_point(size = 2) +
+  transition_states(species,
                     transition_length = 2,
                     state_length = 1) +
   enter_fade() +
@@ -119,9 +120,10 @@ anim <- penguins %>% drop_na(sex) %>%
           transition_time(year) +
           labs(title = "Year: {frame_time}")
 
-animate(anim, nframes = 3, fps = 0.5)
+# animate(anim, nframes = 3, fps = 0.5)
 
-# animate(anim, nframes = 3, fps = 0.5, renderer = gifski_renderer("figures/mass_flipper_relationship.gif")) 
+animate(anim, nframes = 3, fps = 0.5, 
+        renderer = gifski_renderer("figures/mass_flipper_relationship.gif"))
 # you can alternate the renderer if you want video output instead of gif ffmpeg_renderer()
 ```
 

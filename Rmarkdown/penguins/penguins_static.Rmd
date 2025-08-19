@@ -73,7 +73,7 @@ p <- penguins %>%
 p
 
 # customize theme
-# p + theme_bw() 
+# p + theme_bw()
     
 # customize colors
 # https://r-graph-gallery.com/ggplot2-color.html
@@ -82,11 +82,10 @@ p
 # myColors <- brewer.pal(3,"Set2") # or custom colors myColors <- c("#6deeb7", "#c3b4e7", "#d43bca")
 # names(myColors) <- levels(penguins$species)
 # colScale <- scale_colour_manual(name = "species", values = myColors)
-
-# p +
+# 
+# p + colScale
   # scale_color_hue()
   # scale_color_brewer(palette = "Dark2")
-  # pal
 
 ```
 
