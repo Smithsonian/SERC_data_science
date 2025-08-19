@@ -122,7 +122,7 @@ anim <- penguins %>% drop_na(sex) %>%
 animate(anim, nframes = 3, fps = 0.5)
 
 # animate(anim, nframes = 3, fps = 0.5, renderer = gifski_renderer("figures/mass_flipper_relationship.gif")) 
-
+# you can alternate the renderer if you want video output instead of gif ffmpeg_renderer()
 ```
 
 Let's look at another type of animated timeseries.

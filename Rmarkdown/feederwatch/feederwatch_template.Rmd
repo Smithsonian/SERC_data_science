@@ -23,7 +23,7 @@ state_birds <- data_clean %>% filter(state %in% params$state)
 
 [Project FeederWatch](https://feederwatch.org/explore/raw-dataset-requests/) is a November-April survey of birds that visit backyards, nature centers, community areas, and other locales in North America. Participatory scientists count birds in areas with plantings, habitat, water, or food that attracts birds. The schedule is completely flexible. People count birds as long as they like on days of their choosing, then enter their counts online. This allows anyone to track what is happening to birds around your home and to contribute to a continental data-set of bird distribution and abundance. Project FeederWatch is operated by the Cornell Lab of Ornithology and Birds Canada. 
 
-This report covers the observations taken between `r min(data_clean$date)` and `r max(data_clean$date)`.
+The data used in this report is from one Feederwatch survey which was posted for [Tidy Tuesday](https://github.com/rfordatascience/tidytuesday/tree/main/data/2023/2023-01-10). The observations for this survey were taken between `r min(data_clean$date)` and `r max(data_clean$date)`.
 
 ## Data Summary
 
