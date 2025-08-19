@@ -1,0 +1,140 @@
+---
+title: "Palmer Penguin Data Visualization"
+subtitle: "SERC Data Science"
+author: "Jaxine Wolfe"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(palmerpenguins)
+library(DT)
+library(plotly)
+library(gganimate)
+# library(gifski)
+# library(png)
+
+```
+
+## Meet the penguins
+
+The `penguins` data from the [**palmerpenguins**](https://allisonhorst.github.io/palmerpenguins/index.html) package contains size measurements for `r nrow(penguins)` penguins for three species observed on three islands in the Palmer Archipelago, Antarctica.
+
+## Tables with DT
+
+```{r}
+smry <- penguins %>% 
+  group_by(species, sex, island) %>% 
+  summarize(across(where(is.numeric), mean, na.rm = TRUE)) %>% 
+  mutate(across(where(is.numeric), round, 5)) %>% 
+  select(-year)
+
+DT::datatable(smry, 
+          caption = "Summary of Continuous Variables", 
+          options = list(autoWidth = TRUE,
+                         paging = FALSE,
+                         info = FALSE,
+                         scrollY = 300),
+          rownames = FALSE)
+```
+
+## Plotly
+
+### Scatterplot
+
+```{r}
+plot_ly(data = penguins, x = ~bill_length_mm, y = ~bill_depth_mm, 
+        color = ~species, colors = "Set1", alpha = 0.5)
+
+# add hover text
+# text = ~paste("Sex: ", sex, '<br>Year:', year)
+```
+
+### Barplots
+
+```{r}
+penguins %>% 
+  group_by(species) %>% 
+  summarize(n = n()) %>% 
+       plot_ly(x = ~species, y = ~n, type = "bar",
+               color = ~species, colors = "Set1", width = ) %>% 
+       layout(title = "This is a figure title",
+              xaxis = list(title = "Species"),
+              yaxis = list(title = "Number of Individuals"))
+
+```
+
+Lets add errorbars!
+
+```{r}
+bill_length_smry <- penguins %>% drop_na(sex, bill_length_mm) %>% 
+  group_by(species, sex) %>%
+  summarize(bill_length_mm_se = sd(bill_length_mm)/sqrt(length(bill_length_mm)), # this has to be first
+            bill_length_mm = mean(bill_length_mm, na.rm = T)) 
+
+plot_ly(bill_length_smry, x = ~species, y = ~bill_length_mm, type = "bar", color = ~sex,
+             error_y = list(array = ~bill_length_mm_se, color = "black"))
+```
+
+
+## Gganimate
+
+### Data Relationships
+
+Animating the body mass to flipper length relationship across different species of penguin. 
+
+```{r}
+penguins %>% 
+          ggplot(aes(body_mass_g, flipper_length_mm, col = species)) +
+          geom_point(size = 2) +
+           transition_states(species,
+                    transition_length = 2,
+                    state_length = 1) +
+  enter_fade() +
+  exit_shrink()
+
+```
+
+### Timeseries
+
+Adding in sex as a categorical variable and animating the relationship of body mass to flipper length through time.
+
+```{r}
+
+anim <- penguins %>% drop_na(sex) %>% 
+          ggplot(aes(body_mass_g, flipper_length_mm, col = sex)) +
+          geom_point() +
+          stat_ellipse(geom = "polygon",
+               aes(fill = sex), 
+               alpha = 0.25) + # can also adjust confidence interval with "level"
+          facet_wrap(~species) +
+          transition_time(year) +
+          labs(title = "Year: {frame_time}")
+
+animate(anim, nframes = 3, fps = 0.5)
+
+# animate(anim, nframes = 3, fps = 0.5, renderer = gifski_renderer("figures/mass_flipper_relationship.gif")) 
+
+```
+
+Let's look at another type of animated timeseries.
+
+```{r}
+penguins %>% 
+  group_by(species, year) %>% 
+  summarize(n = n()) %>% 
+  ggplot(aes(year, n, col = species)) +
+  geom_point() + geom_line() +
+  transition_reveal(year) 
+
+anim_save("figures/population_change.gif")
+
+```

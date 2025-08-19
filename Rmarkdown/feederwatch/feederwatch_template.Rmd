@@ -1,0 +1,154 @@
+---
+title: "Feederwatch: `r params$state` State Report"
+author: "Jaxine Wolfe"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab
+    highlight: tango
+params:
+  state: "MD"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+```
+
+```{r}
+state_birds <- data_clean %>% filter(state %in% params$state)
+```
+
+[Project FeederWatch](https://feederwatch.org/explore/raw-dataset-requests/) is a November-April survey of birds that visit backyards, nature centers, community areas, and other locales in North America. Participatory scientists count birds in areas with plantings, habitat, water, or food that attracts birds. The schedule is completely flexible. People count birds as long as they like on days of their choosing, then enter their counts online. This allows anyone to track what is happening to birds around your home and to contribute to a continental data-set of bird distribution and abundance. Project FeederWatch is operated by the Cornell Lab of Ornithology and Birds Canada. 
+
+This report covers the observations taken between `r min(data_clean$date)` and `r max(data_clean$date)`.
+
+## Data Summary
+
+```{r}
+
+bird_smry <- state_birds %>% 
+  group_by(primary_com_name, sci_name) %>% 
+  summarize(Count = sum(how_many)) %>% 
+  arrange(desc(Count)) %>% 
+  rename(`Scientific Name` = sci_name, 
+         `Common Name` = primary_com_name)
+  
+datatable(bird_smry, 
+          options = list(autoWidth = TRUE,
+                         searching = TRUE,
+                         paging = FALSE,
+                         scrollY = 300,
+                         # scrollX = 300,
+                         scrollCollapse = TRUE), 
+          rownames = TRUE)
+
+```
+
+## Data Visualization
+
+### Bird Counts
+
+Plotting bird counts for each species observed and arranging in visually descending order. 
+
+```{r fig.height=8, fig.width=8}
+bird_smry %>% 
+  # filter(Count > 10) %>%
+       plot_ly(x = ~Count, y = ~reorder(`Common Name`, Count), type = "bar") %>% 
+       layout(xaxis = list(title = "Number of Individuals"),
+              yaxis = list(title = "Common Name"))
+```
+
+### Observations Over Time
+
+Let's make a heatmap of observations by species and month.
+
+```{r}
+top10 <- bird_smry$`Common Name`[1:10]
+
+state_birds %>% 
+  filter(primary_com_name %in% top10) %>% 
+  group_by(primary_com_name, Year, Month) %>% 
+  summarize(how_many = sum(how_many)) %>%
+  mutate(Month = factor(as.character(Month))) %>% 
+  # mutate(norm_count = how_many/sum(how_many)) %>% 
+  ggplot(aes(Month, primary_com_name, fill = how_many)) +
+  geom_tile(color = "white") +
+  coord_equal() +
+  scale_fill_continuous(name = "Bird Count") +
+  ylab("Common Name")
+  # guides(fill=guide_legend(title="Bird Count")) # another way to define the legend title
+```
+
+Animation of the top 10 observed species through time. Observations are represented as a cumulative sum.
+
+```{r fig.height=6, fig.width=8}
+
+state_birds %>% 
+  arrange(date) %>% 
+  group_by(primary_com_name) %>% 
+  mutate(cumulative_count = cumsum(how_many)) %>% 
+  filter(primary_com_name %in% top10) %>% 
+  ggplot(aes(date, cumulative_count)) +
+  geom_point() + geom_line() +
+  facet_wrap(~primary_com_name) +
+  transition_reveal(date)
+
+```
+
+## Mapping With Leaflet
+
+Map of all the bird observations in this state for the study duration. The radius of each point indicates the relative number of individuals observed for a given species.
+
+```{r}
+
+leaflet(state_birds, width = "100%") %>% 
+  # basemap options
+  addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
+  addTiles(group = "OSM (default)") %>%
+  addCircleMarkers(radius = ~how_many/5, 
+                   group = "Markers",
+                   label = ~primary_com_name) 
+    # addLayersControl(
+    #   baseGroups = c("CartoDB", "OSM (default)"),
+    #                  overlayGroups = c("Markers"),
+    #                  position = "topright")
+
+```
+
+Let's add some color and look at the top observed species for this state.
+
+```{r}
+
+species_obs <- state_birds %>% filter(primary_com_name %in% top10[1:2])
+
+# Continuous palette
+# pal <- colorNumeric(palette = "RdBu", domain = species_obs$how_many)
+
+# Discrete palette
+pal <- colorFactor("Set1", levels = species_obs$primary_com_name)
+
+leaflet(species_obs, width = "100%") %>% 
+        # basemap options
+  addProviderTiles(providers$CartoDB, group = "CartoDB") %>% 
+  addTiles(group = "OSM (default)") %>%
+  addCircleMarkers(radius = ~how_many, 
+                   group = "Markers",
+                   color = ~pal(primary_com_name),
+                   label = ~how_many) %>% 
+  addLegend(position = "bottomright",
+            pal = pal, values = ~primary_com_name,
+            title = "Legend",
+            opacity = 1) %>%
+    addLayersControl(
+      baseGroups = c("CartoDB", "OSM (default)"),
+                     overlayGroups = c("Markers"),
+                     position = "topright")
+
+
+## And many more possibilities!
+# https://r-charts.com/spatial/interactive-maps-leaflet/
+```
+

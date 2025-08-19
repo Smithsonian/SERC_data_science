@@ -1,0 +1,104 @@
+---
+title: "Palmer Penguin Data Visualization"
+subtitle: "SERC Data Science"
+author: "Jaxine Wolfe"
+date: "August 19, 2025"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(fig.pos = 'H')
+
+# Run the following in your console below if you don't have these installed
+# install.packages(c("rmarkdown","tinytex","knitr"))
+# tinytex::install_tinytex()
+
+library(tidyverse)
+library(palmerpenguins)
+library(RColorBrewer)
+```
+
+## Meet the penguins
+
+The `penguins` data from the [**palmerpenguins**](https://allisonhorst.github.io/palmerpenguins/index.html) package contains size measurements for `r nrow(penguins)` penguins for three species observed on three islands in the Palmer Archipelago, Antarctica.
+
+## Summary Table
+
+```{r smry-table}
+smry <- penguins %>% 
+  group_by(species) %>% 
+  summarize(across(where(is.numeric), mean, na.rm = TRUE)) %>% 
+  mutate(across(where(is.numeric), round, 5)) %>% 
+  select(-year)
+
+knitr::kable(smry) # static table
+```
+
+## Body Mass
+
+```{r}
+penguins %>% 
+  ggplot(aes(body_mass_g, fill = sex)) +
+  geom_histogram(alpha = 0.5) +
+  facet_wrap(~species, ncol = 1) +
+  theme_bw()
+```
+
+
+## Bill Length
+
+```{r}
+
+# Using kernel density estimation (KDE) to create a smooth estimate of the probability density function of a continuous variable. 
+penguins %>% 
+  ggplot(aes(bill_length_mm, fill = species)) +
+  geom_density(alpha = 0.3) + geom_rug(aes(col = species)) +
+  theme_bw()
+```
+
+
+## Change Through Time
+
+```{r fig.pos="H"}
+
+#Create a custom color scale
+
+p <- penguins %>%
+  group_by(species, year) %>% 
+  summarize(n = n()) %>% 
+  ggplot(aes(year, n, col = species)) +
+  geom_point() + geom_line() +
+  xlab("Year") + ylab("Number of Individuals")
+p
+
+# customize theme
+# p + theme_bw() 
+    
+# customize colors
+# https://r-graph-gallery.com/ggplot2-color.html
+
+# colors from brewer palette
+# myColors <- brewer.pal(3,"Set2") # or custom colors myColors <- c("#6deeb7", "#c3b4e7", "#d43bca")
+# names(myColors) <- levels(penguins$species)
+# colScale <- scale_colour_manual(name = "species", values = myColors)
+
+# p +
+  # scale_color_hue()
+  # scale_color_brewer(palette = "Dark2")
+  # pal
+
+```
+
+## Data Relationships
+
+```{r fig.cap="This is a caption."}
+penguins %>% 
+  drop_na(sex) %>% 
+  ggplot(aes(body_mass_g, flipper_length_mm, col = species)) +
+  geom_point(pch = 1, alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE, alpha = 0.3) +
+  theme_minimal() + # this must come before theme()
+  theme(legend.position = "bottom") 
+
+```
